@@ -48,7 +48,14 @@ typedef struct {
 
 /* 결과를 뷰에 채운다(포인터를 함수 경계 너머로 옮겨 -Wdangling 을 회피하는 형태) */
 static void view_set(LineView *out, char **arr, int n) {
-    out->lines = arr;
+    // arr의 것을 복사해야함. 문자 자체는 main에  살아있다. 
+    // 함수 시그니처 변경 안하면 heap 밖에 안되지 않나 
+    //  TODO: -> heap으로 했는데,  만약 destroy한다면 free 필요 있다.
+    out->lines = malloc(sizeof(char*) * n);
+    for(int i = 0; i < n; i++){
+        out->lines[i] = arr[i];
+    }
+    // out->lines = arr;
     out->count = n;
 }
 
@@ -58,12 +65,20 @@ static void split_lines(LineView *out, char *text) {
     /* strtok는 새로 할당하지 않고, 넘겨받은 문자열 내부의 주소를 돌려준다. 
     * 따라서, strtok은 원본 버퍼를 제자리에서 수정한다. 
     */
-    for (char *ln = strtok(text, "\n"); ln && n < MAX_LINES; ln = strtok(NULL, "\n"))
+    for (char *ln = strtok(text, "\n"); ln && n < MAX_LINES; ln = strtok(NULL, "\n")) // NULL이 주소일 떄, static pointer에 기억한 주소에서부터 시작
         parts[n++] = ln;
 
-    view_set(out, parts, n);      
+    view_set(out, parts, n);  // parts가 스택에 있는데 out->lines에 대입해도 되나 
+    // (gdb) info address parts
+// Symbol "parts" is a complex DWARF expression:
+    //  0: DW_OP_fbreg -96 -> Frame Base Register 에서 -96 밑에 있는 ->
 
-    /* TODO 상기 코드를 수정하여 결과를 호출자가 준 out 에 직접 채운다(값 반환 아님, 지역 주소 반환 아님). */       
+ /* -> 스택에 parts 배열 있으니, split lines 후에 없어질 수 밖에 없다.
+ 스택(Stack) 영역에 있는 경우: DW_OP_fbreg가 표시됩니다. 
+ 이는 함수가 실행될 때 생성되는 스택 프레임 내부의 오프셋을 뜻하므로 지역 변수입니다.
+ 힙(Heap) 영역에 있는 경우: info address를 쳤을 때 주소가 나오지 않거나 포인터 변수 자체의 주소만 
+ 나옵니다. 힙은 동적 할당(malloc, new)을 통해 생성되므로,
+  p parts를 입력했을 때 출력되는 실제 주솟값(0x...)의 범위를 보고 판단해야 합니다.*/
 }
 
 /* split_lines 가 쓰던 스택 프레임을, 같은 모양(char*[8])의 지역 배열로 덮는다.
@@ -72,6 +87,7 @@ static void warm_stack(void) {
     char *scratch[MAX_LINES];
     for (int i = 0; i < MAX_LINES; i++)
         scratch[i] = (char *)0x4141414141414141ULL;   /* 매핑되지 않은 주소 */
+        // unsigned ll 이 char pointer와 같은 크기. casting
     __asm__ volatile("" :: "r"(scratch) : "memory");   /* 최적화 제거 방지 */
 }
 
@@ -82,6 +98,7 @@ int main(void) {
     split_lines(&v, text);               
     warm_stack();                        
 
+    // v.lines는 $5 = (char **) 0x5555555592a0 -> 힙의 주소 포인터 
     long checksum = 0;
     for (int i = 0; i < v.count; i++)
         checksum += (unsigned char)v.lines[i][0];

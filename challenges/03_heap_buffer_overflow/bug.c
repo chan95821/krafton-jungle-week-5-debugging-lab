@@ -38,8 +38,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct {
-    int   *data;
+typedef struct
+{
+    int *data;
     /* [Thinking Point]
      * 개수/크기를 담는 len, cap 을 왜 int 가 아니라 size_t 로 선언할까?
      *   tip 1. size_t 는 "이 플랫폼에서 표현 가능한 가장 큰 객체 크기"를 담도록 만든
@@ -52,50 +53,93 @@ typedef struct {
     size_t cap;
 } IntList;
 
-static void list_init(IntList *l) {
-    l->cap  = 8;
-    l->len  = 0;
+static void list_init(IntList *l)
+{
+    l->cap = 8;
+    l->len = 0;
     l->data = malloc(l->cap * sizeof(int));
-    if (!l->data) { perror("malloc"); exit(1); }
+    if (!l->data)
+    {
+        perror("malloc");
+        exit(1);
+    }
 }
 
-static void list_ensure(IntList *l, size_t need) {
-    if (need <= l->cap) return;
+static void list_ensure(IntList *l, size_t need) 
+{
+    if (need <= l->cap)
+        return;
 
-    size_t newcap = l->cap ? l->cap * 2 : 8;
-    while (newcap < need) newcap *= 2;
+    size_t newcap = l->cap ? l->cap * 2 : 8; // lcap이 16이라서  newcap이 32,,
+    while (newcap < need)
+        newcap *= 2;
+/*
+      realloc은 새 크기에 맞춰 메모리를 할당할 때 성능 최적화를 위해 두 가지 방식으로 동작합니다.
+      동일 위치 확장 (In-place Allocation): 기존 메모리 블록의 뒤쪽에 연속된 여유 공간이 충분하다면,
+      주소를 바꾸지 않고 기존 주소 그대로 크기만 늘립니다. 성능상 가장 이상적입니다.
+      새로운 위치 이동 (New Allocation): 뒤쪽에 연속된 공간이 부족하면, 
+      새로운 메모리 공간을 찾아 전체를 새로 할당합니다. 그 후 기존 데이터를 새 공간으로 자동 복사하고, 
+      기존 메모리는 자동으로 해제(free)합니다.
+      */
+    int *p = realloc(l->data, newcap * sizeof(int)); // -> l-cap 이 아니라, newcap으로 바꿨다.
 
-    int *p = realloc(l->data, l->cap * sizeof(int));
-    if (!p) { perror("realloc"); free(l->data); exit(1); }
+    // 1.용량이 작게 됐다면 realloc이 아니라 대입에서 문제 생기지 않았을지?
 
+    // realloc 문제 나는 경우 : 할당 범위 외 침범시 - 메타데이터 덧씌워짐,, 무결성 오류, : 침범시 감지하지 않음.
+    // realloc이나 free 때 발생함.
+    // 넘겨준 시작 주소가 정확하지 않은 경우 
+    // size가 오류 있는 경우 
+    // free 된 상태인데 realloc 시도 경우 
+    // heap 외 주소를 전달한 경우 
+
+
+    // -> break list_ensure로 가장 처음 realloc 확인함. - 그 전 realloc이 8일 때 발생, 
+    // 2. 아니면 그 전 realloc에서 문제 됐을수도 
+    // realloc시에도 lcap이었으므로 사이즈가 늘지 않음
+    // 그런데 l->cap 변수만 newcap으로 업데이트 되었으므로 실제 힙 크기와 불일치.
+    // ensure 전까지 어떤 alloc도 없고 대입만 하므로 오류 없었다.
+    if (!p)
+    {
+        perror("realloc");
+        free(l->data);
+        exit(1);
+    } // crash시 p는 이미 주소 있다.
+      
     l->data = p;
-    l->cap  = newcap;
+    l->cap = newcap;
 }
 
-static void list_push(IntList *l, int x) {
-    if (l->len == l->cap) list_ensure(l, l->cap + 1);
+static void list_push(IntList *l, int x)
+{
+    if (l->len == l->cap)
+        list_ensure(l, l->cap + 1); // len이 cap에 닿았을 때 - len ++ 위해 reallc?
     l->data[l->len++] = x;
 }
 
-static long long list_sum(const IntList *l) {
+static long long list_sum(const IntList *l)
+{
     long long s = 0;
-    for (size_t i = 0; i < l->len; i++) s += l->data[i];
+    for (size_t i = 0; i < l->len; i++)
+        s += l->data[i];
     return s;
 }
 
-static void list_free(IntList *l) {
+static void list_free(IntList *l)
+{
     free(l->data);
     l->data = NULL;
     l->len = l->cap = 0;
 }
 
-int main(void) {
+int main(void)
+{
     IntList l;
     list_init(&l);
 
     const int N = 2000000;
-    for (int i = 0; i < N; i++) {
-        list_push(&l, i % 100);        
+    for (int i = 0; i < N; i++)
+    { // i가 16일 때  list_ensure (l=0x7fffffffdde0, need=17) at challenges/03_heap_buffer_overflow/bug.c:68
+        list_push(&l, i % 100);
     }
 
     printf("len=%zu cap=%zu sum=%lld\n", l.len, l.cap, list_sum(&l));

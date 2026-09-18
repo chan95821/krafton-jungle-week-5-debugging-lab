@@ -56,17 +56,24 @@ static void expand(const Config *c, const char *tmpl, char *out, size_t outcap) 
     size_t o = 0;
     for (const char *p = tmpl; *p; ) {
         if (p[0] == '$' && p[1] == '{') {
-            const char *end = strchr(p, '}');
-            if (!end) break;
+            const char *end = strchr(p, '}'); // p가 각 char이니, {} 짝 정상이면 } 정상 찾음 
+            if (!end) break; // 잘못되었으니 out이 "\0"
             char key[32];
             size_t kl = (size_t)(end - (p + 2));
             if (kl >= sizeof key) kl = sizeof key - 1;
             memcpy(key, p + 2, kl);
             key[kl] = '\0';
 
-            const char *v = cfg_get(c, key);      
-            size_t vl = strlen(v);                 
-            if (o + vl < outcap) { memcpy(out + o, v, vl); o += vl; }
+            const char *v = cfg_get(c, key);      // v가 NULL - key가 없어서 
+            // TODO:  expand가 어떤 의미인지 알아야 null 행동 / 또는 / key 있는데 반환할수도 
+            if(!v) {
+                printf("no val for key : %s\n", key);
+                exit(1);
+            }
+
+                size_t vl = strlen(v);       //68에서 seg v.        
+                if (o + vl < outcap) { memcpy(out + o, v, vl); o += vl; }
+            
             p = end + 1;
         } else {
             if (o + 1 < outcap) out[o++] = *p;

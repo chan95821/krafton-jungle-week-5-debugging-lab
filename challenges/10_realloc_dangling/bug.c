@@ -40,68 +40,101 @@
 #include <string.h>
 
 #define MAX_UNDO 8
-typedef struct {
-    int   *data;
+typedef struct
+{
+    int *data;
     size_t len, cap;
-    int   *clipboard;       
-    int   *undo[MAX_UNDO];   
-    int    undo_n;
+    int *clipboard;
+    int *undo[MAX_UNDO];
+    int undo_n;
 } EditBuffer;
 
-static void eb_init(EditBuffer *e) {
+static void eb_init(EditBuffer *e)
+{
     e->cap = 4;
     e->len = 0;
     e->undo_n = 0;
     e->data = malloc(e->cap * sizeof(int));
-    if (!e->data) { perror("malloc"); exit(1); }
-    /* data 바로 뒤에 놓이는 별도 할당. data 가 힙 맨 끝(top)이 아니게 되어
-       이후 realloc 이 제자리 확장 대신 '이동'을 택하게 만든다(→ 옛 블록 해제). */
+    if (!e->data)
+    {
+        perror("malloc");
+        exit(1);
+    }
+
     e->clipboard = malloc(e->cap * sizeof(int));
-    if (!e->clipboard) { perror("malloc"); exit(1); }
+    if (!e->clipboard)
+    {
+        perror("malloc");
+        exit(1);
+    }
 }
 
-static void eb_snapshot(EditBuffer *e) {
-    if (e->undo_n < MAX_UNDO) e->undo[e->undo_n++] = e->data;
+static void eb_snapshot(EditBuffer *e)
+{
+
+    if (e->undo_n < MAX_UNDO)
+    { // snapshot이니, cap 말고 len 할지? - 
+        // len, cap이 계속 바뀌는데, snapshot을 제대로 읽을 수는 있을지 : TODO / 저장만 하고 읽는게 없다.
+        int *snapshot = malloc(sizeof *e->data * e->len);
+        for(size_t i = 0; i < e->len; i++)
+            snapshot[i] = e->data[i];
+        e->undo[e->undo_n++] = snapshot;
+    } // 포인터 소유면, data 바뀌면 스냅샷도 바뀌지 않나
+    // free할 때 undo skip 하면 되지만, 대입 자체가 잘못된
 }
 
-static void eb_grow(EditBuffer *e, size_t need) {
+static void eb_grow(EditBuffer *e, size_t need)
+{
     size_t nc = e->cap;
-    while (nc < need) nc *= 2;
-    int *p = realloc(e->data, nc * sizeof(int));   
-    if (!p) { perror("realloc"); free(e->data); exit(1); }
-    e->data = p;                                   
+    while (nc < need)
+        nc *= 2;
+    int *p = realloc(e->data, nc * sizeof(int));
+    if (!p)
+    {
+        perror("realloc");
+        free(e->data);
+        exit(1);
+    }
+    e->data = p;
     e->cap = nc;
 }
 
-static void eb_push(EditBuffer *e, int v) {
-    if (e->len == e->cap) eb_grow(e, e->len + 1);
+static void eb_push(EditBuffer *e, int v)
+{
+    if (e->len == e->cap)
+        eb_grow(e, e->len + 1);
     e->data[e->len++] = v;
 }
 
-static void eb_free(EditBuffer *e) {
+static void eb_free(EditBuffer *e)
+{
     free(e->data);
     free(e->clipboard);
-    for (int i = 0; i < e->undo_n; i++) {
-        free(e->undo[i]);           
+    for (int i = 0; i < e->undo_n; i++)
+    {
+        free(e->undo[i]);
     }
     e->undo_n = 0;
     e->data = NULL;
 }
 
-int main(void) {
+int main(void)
+{
     EditBuffer e;
     eb_init(&e);
 
-    for (int i = 0; i < 3; i++) eb_push(&e, i);
+    for (int i = 0; i < 3; i++)
+        eb_push(&e, i);
 
-    eb_snapshot(&e);                 
+    eb_snapshot(&e);
 
-    for (int i = 0; i < 4000; i++) eb_push(&e, i);     
+    for (int i = 0; i < 4000; i++)
+        eb_push(&e, i);
 
     printf("len=%zu cap=%zu head=%d tail=%d\n",
            e.len, e.cap, e.data[0], e.data[e.len - 1]);
 
-    eb_free(&e);                     
+    eb_free(&e);
     printf("done\n");
     return 0;
 }

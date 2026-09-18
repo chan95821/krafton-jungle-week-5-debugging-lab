@@ -27,9 +27,7 @@
  *     fprintf(stderr, "alloc=%zu copied=%zu\n", need, off);
  *   → copied 가 alloc 을 넘어서면 그 초과분이 힙을 침범한 것.
  *   (stdout 은 버퍼링되니 stderr 로 찍어야 크래시 직전 로그가 남는다)
- *
- * TODO: 크기 계산 루프를 `i < n` 으로 고쳐 모든 조각 길이와 종료 문자('\0') 자리를
- *       빠짐없이 더한다. "계산 루프와 복사 루프의 범위를 반드시 일치"시킨다.
+
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,19 +36,19 @@
 /* 필요한 총 바이트 수 = 모든 조각 길이 합 + 종료 문자 1 */
 static size_t joined_size(const char *const *parts, int n) {
     size_t total = 1;                        /* '\0' 자리 */
-    for (int i = 0; i < n - 1; i++) {        
+    for (int i = 0; i < n; i++) {    // 2. n-1 보다 작은 인덱스라서, 마지막 것 포함 안했다    
         total += strlen(parts[i]);
     }
     return total;
 }
 
 static char *join(const char *const *parts, int n) {
-    size_t need = joined_size(parts, n);
-    char *out = malloc(need);                /* 마지막 조각 길이만큼 부족하게 할당됨 */
+    size_t need = joined_size(parts, n); // 1. parts의 body도 포함해야 하는데 왜 need 29밖에 안되나 
+    char *out = malloc(need);              
     if (!out) { perror("malloc"); exit(1); }
 
     size_t off = 0;
-    for (int i = 0; i < n; i++) {            /* 복사는 마지막 조각까지 전부 → 오버플로 */
+    for (int i = 0; i < n; i++) {          
         strcpy(out + off, parts[i]);
         off += strlen(parts[i]);
     }
@@ -61,13 +59,14 @@ static char *join(const char *const *parts, int n) {
 int main(void) {
     
     static char body[200000];
-    memset(body, 'x', sizeof body - 1);
-    body[sizeof body - 1] = '\0';
+    memset(body, 'x', sizeof body - 1); // 왜 size -1? 
+    // memset은 바이트 단위로 set함. char이 항상 1 바이트니, 정상 채워짐
+    body[sizeof body - 1] = '\0'; // -> 마지막 원소를 NUL 문자로 하니 상관없는 
 
     const char *parts[] = { "GET ", "/index.html", " HTTP/1.1\r\n\r\n", body };
     int n = (int)(sizeof(parts) / sizeof(parts[0]));
 
-    char *msg = join(parts, n);              /* 복사 중 힙 오버플로 → 크래시 */
+    char *msg = join(parts, n);          
 
     printf("joined length = %zu\n", strlen(msg));
     free(msg);

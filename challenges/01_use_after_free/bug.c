@@ -90,6 +90,7 @@ static Widget *widget_new(const VTable *vt, int id, const char *label) {
     *          → *w 의 타입(Widget)만 필요할 뿐, w 를 실제로 따라가지 않는다.
     *   tip 2. 그래서 sizeof *w 는 (VLA 제외) 컴파일 타임에 sizeof(Widget) 상수로 치환된다.
     *   생각해보기: sizeof(Widget) 대신 sizeof *w 로 쓰면 어떤 장점이 있을까?
+    *   loosens type coupling
     */
     Widget *w = malloc(sizeof *w);
     if (!w) { perror("malloc"); exit(1); }
@@ -102,7 +103,7 @@ static Widget *widget_new(const VTable *vt, int id, const char *label) {
 }
 
 static void widget_destroy(Widget *w) {
-    free(w);          
+    free(w);
 }
 
 /* ── Screen ──────────────────────────────────────────────────── */
@@ -111,10 +112,19 @@ static void screen_add(Screen *s, Widget *w) {
 }
 
 static void screen_dispatch(Screen *s, int code) {
-    for (int i = 0; i < s->count; i++) {
-        Widget *w = s->items[i];
+    for (int i = 0; i < s->count; i++) { // 모든 item에 대해 code 전달 
+        Widget *w = (s->items[i]);
         w->vtbl->on_event(w, code);
-    }
+        if(w->closed){
+            widget_destroy(w); // widget을 여기서 free
+            for(int k = i+1; k < s->count; k++) {
+                s->items[k-1] = s->items[k];
+            }
+            (s->count)--;
+            i--;
+        }
+    } // w 외부에서 포인터 정리해줘야
+
 }
 
 static void screen_render(Screen *s) {
@@ -126,8 +136,9 @@ static void screen_render(Screen *s) {
 
 static void dialog_on_event(Widget *self, int code) {
     if (code == 1) {
-        self->closed = 1;
-        widget_destroy(self);   
+        self->closed = 1; // 표시만
+        // widget_destroy(self); -> 이걸 screen이 하게
+
     }
 }
 
@@ -165,6 +176,6 @@ int main(void) {
     screen_render(&s);           
 
     free(status);
-    for (int i = 0; i < s.count; i++) free(s.items[i]);
+    for (int i = 0; i < s.count; i++) free(s.items[i]); // items가 count 까지만 free되므로 double free 없다
     return 0;
 }
