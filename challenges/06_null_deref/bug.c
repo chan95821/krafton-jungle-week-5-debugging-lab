@@ -34,27 +34,34 @@
 #include <string.h>
 
 #define MAX_HEADERS 32
-typedef struct {
+typedef struct
+{
     char *keys[MAX_HEADERS];
     char *vals[MAX_HEADERS];
-    int   count;
+    int count;
 } Headers;
 
-static char *skip_ws(char *s) {
-    while (*s == ' ' || *s == '\t') s++;
+static char *skip_ws(char *s)
+{
+    while (*s == ' ' || *s == '\t')
+        s++;
     return s;
 }
 
-static void parse_headers(char *text, Headers *h) {
-    for (char *line = strtok(text, "\n"); line != NULL; line = strtok(NULL, "\n")) {
+static void parse_headers(char *text, Headers *h)
+{
+    for (char *line = strtok(text, "\n"); line != NULL; line = strtok(NULL, "\n"))
+    {
         char *colon; // = strchr(line, ':');   // line = "line" 일 때 오류, colon = NULL, ':' 없어서
-        if(!(colon = strchr(line, ':'))) continue; 
+        if (!(colon = strchr(line, ':')))
+            continue;
 
-        *colon = '\0';   // strchr은 실패시 null 반환하니, null deref 가능                 
-        char *key = line; // 정상일 때, :을 end로 처리하니, line이 key까지만 잘림 
+        *colon = '\0';                  // strchr은 실패시 null 반환하니, null deref 가능
+        char *key = line;               // 정상일 때, :을 end로 처리하니, line이 key까지만 잘림
         char *val = skip_ws(colon + 1); // 첫 whitespace 없애고, 줄바꿈 전까지가 val
-            // 그렇다면 colon 없는 경우는 k, v형식 아니니 건너뛰기
-        if (h->count < MAX_HEADERS) {
+                                        // 그렇다면 colon 없는 경우는 k, v형식 아니니 건너뛰기
+        if (h->count < MAX_HEADERS)
+        {
             h->keys[h->count] = key;
             h->vals[h->count] = val;
             h->count++;
@@ -62,16 +69,17 @@ static void parse_headers(char *text, Headers *h) {
     }
 }
 
-int main(void) {
+int main(void)
+{
 
     char raw[] = // 자동으로 여러 스트링 리터럴 합쳐줌. 컴파일러가
         "Host: example.com\n"
         "Accept: */*\n"
-        "Connection\n"                     
+        "Connection\n"
         "User-Agent: memdbg-cli\n";
 
-    Headers h = { .count = 0 };
-    parse_headers(raw, &h);                
+    Headers h = {.count = 0};
+    parse_headers(raw, &h);
 
     printf("parsed %d headers\n", h.count);
     for (int i = 0; i < h.count; i++)

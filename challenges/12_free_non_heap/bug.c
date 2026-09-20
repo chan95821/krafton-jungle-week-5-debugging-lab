@@ -61,13 +61,14 @@ typedef struct {
 } Row;
 
 static void parse_row(Row *r, const char *csv) {
-    r->base = strdup(csv);       
+    r->base = strdup(csv);   // malloc된 위치     
     if (!r->base) { perror("strdup"); exit(1); }
     r->n = 0;
 
     for (char *tok = strtok(r->base, ","); tok && r->n < MAX_FIELDS;
          tok = strtok(NULL, ",")) {
-        r->fields[r->n++] = tok;  /* fields[0]=base, 나머지는 내부 포인터 */
+        r->fields[r->n++] = tok;  /* fields[0]=base, 나머지는 내부 포인터 */ 
+        // strtok이 새 malloc 주소 반환 안함.
     }
 }
 
@@ -78,9 +79,10 @@ static void row_print(const Row *r) {
 }
 
 static void row_free(Row *r) {
-    for (int i = 0; i < r->n; i++) {
-        free(r->fields[i]);       
-    }
+    // for (int i = 0; i < r->n; i++) {
+    //     free(r->fields[i]);       //
+    // }
+    free(r->base);
     r->n = 0;
 }
 
@@ -89,7 +91,7 @@ int main(void) {
     parse_row(&r, "id,name,dept,salary");
     row_print(&r);
 
-    row_free(&r);                 
+    row_free(&r);         //        
     printf("done\n");
     return 0;
 }

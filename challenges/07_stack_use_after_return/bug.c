@@ -50,7 +50,7 @@ typedef struct {
 static void view_set(LineView *out, char **arr, int n) {
     // arr의 것을 복사해야함. 문자 자체는 main에  살아있다. 
     // 함수 시그니처 변경 안하면 heap 밖에 안되지 않나 
-    //  TODO: -> heap으로 했는데,  만약 destroy한다면 free 필요 있다.
+    //  TODO: -> heap으로 했는데, 만약 destroy한다면 free 필요 있다.
     out->lines = malloc(sizeof(char*) * n);
     for(int i = 0; i < n; i++){
         out->lines[i] = arr[i];

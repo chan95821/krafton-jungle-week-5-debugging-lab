@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct Job {
+typedef struct Job { // Linked List
     int id;
     int priority;
     struct Job *next;
@@ -81,7 +81,7 @@ static Job *filter_jobs(Job *head, int threshold, Audit *audit) {
         if (cur->priority < threshold) {
             audit_add(audit, cur->id);   
             job_release(cur);            
-            cur = cur->next;             
+            cur = cur->next;             // 앞 job이 cur을 그대로 가리키지 않나 
         } else {
             Job *nx = cur->next;
             cur->next = NULL;
