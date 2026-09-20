@@ -76,7 +76,7 @@ static int **make_matrix(void) {
     int **rows = malloc(ROWS * sizeof(int *));
     if (!rows) { perror("malloc"); exit(1); }
 
-    for (int i = 0; i < ROWS; i += 2) { 
+    for (int i = 0; i < ROWS; i += 2) {
         int *r = malloc(COLS * sizeof(int));
         for (int j = 0; j < COLS; j++) r[j] = i * COLS + j;
         rows[i] = r;
@@ -86,7 +86,7 @@ static int **make_matrix(void) {
 
 static long row_sum(int **rows, int nrows) {
     long total = 0;
-    for (int i = 0; i < nrows; i += 2) { // 나머지는 하나씩 건너뛰는데, row_sum만 순차접근, 홀수번째는 값 없다
+    for (int i = 0; i < nrows; i++) {
         for (int j = 0; j < COLS; j++) {
             total += rows[i][j];      
         }
