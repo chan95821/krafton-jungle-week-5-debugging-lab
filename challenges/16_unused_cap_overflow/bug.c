@@ -41,11 +41,12 @@
 
 
 static void append_field(char *buf, size_t cap, size_t *len, const char *field, char sep) {
+    if(*len >= cap) return;
     if (*len > 0) {
         buf[(*len)++] = sep;             
     }
     size_t flen = strlen(field);
-    for (size_t i = 0; i < flen; i++) {
+    for (size_t i = 0; i < flen && *len < cap ; i++) {
         buf[(*len)++] = field[i];         
     }
     buf[*len] = '\0';
@@ -59,17 +60,17 @@ static void build_record(char *rec, size_t cap) {
     int n = (int)(sizeof(fields) / sizeof(fields[0]));
 
     size_t len = 0;
-    rec[0] = '\0';
+    rec[0] = '\0'; // n 이 0이면 for문 없음  
     for (int i = 0; i < n; i++) {
         append_field(rec, cap, &len, fields[i], '|');   
     }
 }
 
 int main(void) {
-    char rec[24];                         
+    char rec[24];          // rec     char가 24보다 많이 저장됨. 
 
     build_record(rec, sizeof rec);        
 
     printf("record = %s\n", rec);
-    return 0;                            
+    return 0;                             // 아마 stack canary
 }

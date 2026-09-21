@@ -59,7 +59,7 @@ static void audit_add(Audit *a, int id) {
     a->ids[a->len++] = id;
 }
 
-static Job *push_job(Job *head, int id, int priority) {
+static Job *push_job(Job *head, int id, int priority) { // 정상인 
     Job *n = malloc(sizeof *n);
     if (!n) { perror("malloc"); exit(1); }
     n->id = id;
@@ -78,17 +78,19 @@ static Job *filter_jobs(Job *head, int threshold, Audit *audit) {
     Job *cur = head;
 
     while (cur != NULL) {
-        if (cur->priority < threshold) {
-            audit_add(audit, cur->id);   
-            job_release(cur);            
-            cur = cur->next;             // 앞 job이 cur을 그대로 가리키지 않나 
+        Job *nx = cur->next; 
+        if (cur->priority < threshold) { // segv - cur-> priority 접근시 문제? 
+            // cur주소는 NULL 아님. 그런데 해당 주소 접근 불가 
+            // 그런데 filter job이라서 cur 일회성 
+            audit_add(audit, cur->id);   // id만 audit에 추가 
+            job_release(cur); // cur watch/// free하고 난 뒤 cur->next 접근하니 문제 ,, 
         } else {
-            Job *nx = cur->next;
-            cur->next = NULL;
+            // keep 할 리스트에 추가 
+            cur->next = NULL; 
             if (keep_tail) keep_tail->next = cur; else keep = cur;
             keep_tail = cur;
-            cur = nx;
         }
+        cur = nx;
     }
     return keep;
 }
@@ -96,10 +98,14 @@ static Job *filter_jobs(Job *head, int threshold, Audit *audit) {
 int main(void) {
     Job *head = NULL;
     for (int i = 1; i <= 4000; i++)
-        head = push_job(head, i, (i * 7) % 10);   
+        head = push_job(head, i, (i * 7) % 10);   // 7 9 3 1 ... 반만 남음 ,,  
 
-    Audit audit = {0};
-    head = filter_jobs(head, 5, &audit);           
+    Audit audit = {0}; /*
+    (gdb) p *head
+$4 = {id = 1431655800, priority = 5, next = 0x430ff60cf390e302}
+(gdb) p *(head->next)
+Cannot access memory at address 0x430ff60cf390e302*/
+    head = filter_jobs(head, 5, &audit);        // seg v    
 
     int remaining = 0;
     for (Job *c = head; c; c = c->next) remaining++;

@@ -68,7 +68,7 @@ static Msg *msg_new(int id, const char *body) {
 }
 
 static void msg_free(Msg *m) {
-    free(m->body);
+    free(m->body); //segf
     free(m);
 }
 
@@ -76,14 +76,14 @@ static void publish(Broker *b, int id, const char *body) {
     Msg *m = msg_new(id, body);
     b->inbox[b->tail] = m;
     b->tail = (b->tail + 1) % QCAP;
-    b->log[b->log_n++] = m;              
+    b->log[b->log_n++] = msg_new(id, body);              
 }
 
 static void deliver(Broker *b, Subscriber sub) {
     while (b->head != b->tail) {
         Msg *m = b->inbox[b->head];
         b->head = (b->head + 1) % QCAP;
-        sub(m);                          
+        sub(m);  
     }
 }
 
@@ -94,8 +94,8 @@ static void on_message(Msg *m) {
 
 static void broker_shutdown(Broker *b) {
     for (int i = 0; i < b->log_n; i++) {
-        msg_free(b->log[i]);             
-    }
+        msg_free(b->log[i]);     //segf   // b->log 내부 객체가 같은 포인터라서,, "감사"용이니, shutdown 전 까지는 보존해야. 그러니 복사가 적절 
+    } // 왜 double freee는 아닌지? => msg_free가 args 전달할 때, m-> body로 m 에 접근하려 하기 때문
     b->log_n = 0;
 }
 
@@ -108,7 +108,7 @@ int main(void) {
 
     deliver(&b, on_message);             
 
-    broker_shutdown(&b);                 
+    broker_shutdown(&b);       // segf           
     printf("done\n");
     return 0;
 }

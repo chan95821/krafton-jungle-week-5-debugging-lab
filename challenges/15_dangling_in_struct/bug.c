@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef int (*PermFn)(const char *action);
+typedef int (*PermFn)(const char *action); // 함수 포인터 시그니처를 typedef?
 
 typedef struct {
     PermFn permission;      
@@ -52,7 +52,7 @@ typedef struct {
     int   session_id;
 } Session;
 
-static int allow_all(const char *action) { (void)action; return 1; }
+static int allow_all(const char *action) { (void)action; return 1; } // 그래서 permfn으로 캐스팅 가능?
 
 static User *login(int uid, const char *name) {
     User *u = malloc(sizeof *u);
@@ -65,7 +65,8 @@ static User *login(int uid, const char *name) {
 }
 
 static void logout(Session *s) {
-    free(s->user);         
+    free(s->user); // free가 user 포인터 변경 안하니, NULL 해줘야
+    s->user = NULL;
 }
 
 /* 감사 로그 항목. User 와 같은 크기라 해제된 청크를 재사용하기 쉽다. */
@@ -79,7 +80,10 @@ static char *audit_record(const char *event) {
 
 static int handle_request(Session *s, const char *action) {
 
-    return s->user->permission(action);    
+    if(!s->user){ // session에 user 없음
+        return 0;
+    }
+    return s->user->permission(action);    // 다른 함수 print 때와 다르게 permission 포인터 접근 못함.
 }
 
 int main(void) {
@@ -94,7 +98,7 @@ int main(void) {
     char *rec = audit_record("logout");      
     printf("%s\n", rec);
     
-    printf("second request allowed=%d\n", handle_request(&s, "write"));
+    printf("second request allowed=%d\n", handle_request(&s, "write")); //seg fault
 
     free(rec);
     return 0;

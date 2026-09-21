@@ -49,7 +49,7 @@ typedef struct {
     int width;
     int height;
     int channels;
-    int nbytes;              
+    size_t nbytes;              
     unsigned char *px;
 } Image;
 
@@ -60,13 +60,26 @@ static Image *image_new(int width, int height, int channels) {
     img->height = height;
     img->channels = channels;
 
-    img->nbytes = width * height * channels;
-    img->px = malloc((size_t)img->nbytes);     
+    
+    // a*b*c <= size_max 인지 검사하고 싶을 때,
+    // a* b <= size_max 
+    // a <= size_max / b (b != 0) 이고,
+
+    // a*b <= size_max / c 이면 됨. c!= 0 
+    if( // gcc 컴파일러가 asm으로 구현한 overflow 검출 함수 사용
+        __builtin_mul_overflow( (size_t) width, (size_t) height, &(img->nbytes)) 
+    || __builtin_mul_overflow( (size_t) img->nbytes, (size_t) channels, &(img->nbytes))
+    ){ // builtin은 img->nbytes를 overflow 된 값으로 씀. 유의 
+        perror("size exceeds MAX_SIZE");
+        exit(1);
+    }
+    img->px = malloc((size_t)img->nbytes); //  픽셀 당 8비트 
     if (!img->px) { perror("malloc px"); exit(1); }
     return img;
 }
 
-static void image_fill(Image *img, unsigned char value) {
+static void image_fill(Image *img, unsigned char value) { // TODO: fill은 image_new 이후이므로, overflow가 나지는 않지만, 방지 고려
+
 
     size_t total = (size_t)img->width * (size_t)img->height * (size_t)img->channels;
     for (size_t i = 0; i < total; i++) {
@@ -87,7 +100,7 @@ int main(void) {
      *               일 때가 3(RGB)일 때보다 오버플로가 더 쉽게 터질까?
      *               (해결 힌트: 크기 계산을 size_t 로 승격하고, 곱셈 오버플로를 검사한다) */
     Image *img = image_new(65536, 65536, 4);
-    printf("allocated nbytes(int)=%d for %dx%d x%d\n",
+    printf("allocated nbytes(size_t)=%zu for %dx%d x%d\n",
            img->nbytes, img->width, img->height, img->channels);
 
     image_fill(img, 0xFF);                       

@@ -55,16 +55,18 @@ static void signal_init(Signal *s, size_t n) {
 
 static void signal_trim(Signal *s, size_t keep) {
     if (keep > s->cap) return;
-    double *p = realloc(s->samples, keep * sizeof(double));
+    double *p = realloc(s->samples, keep * sizeof(double)); // keep만큼 줄여버리는 
     if (p) s->samples = p;
-    s->cap = keep;                 
+    s->cap = keep;
+    s->len = keep; // len이 있을 이유가 있나              
 }
 
 static double signal_energy(const Signal *s) {
     double e = 0.0;
-    for (size_t i = 0; i < s->len; i++) {   
-        e += s->samples[i] * s->samples[i];
-    }
+    for (size_t i = 0; i < s->len; i++) {    // i가 510일 때 segfault - 510부터 접근 불가, 아마도
+        // len을 업데이트 안해줘서 cap보다 더 크게 접근 ,, cap이 
+        e += s->samples[i] * s->samples[i];  //segfault
+    } 
     return e;
 }
 
@@ -75,7 +77,7 @@ int main(void) {
 
     signal_trim(&s, 8);             
 
-    double e = signal_energy(&s);   
+    double e = signal_energy(&s);   // segfault
     
     printf("energy = %.1f (len=%zu cap=%zu)\n", e, s.len, s.cap);
     free(s.samples);

@@ -52,19 +52,22 @@ static int handshake_ok(const Conn *c) {
     (void)c;
     return 0;                     /* 실패 */
 }
-
+// 반대로 C에서 goto가 꽤 적절한 대표적인 경우가 에러 발생 시 자원을 역순으로 정리하는 코드입니다.
+// -> linux kernel의  cleanup pattern,, 
+// -> goto를 임의로 쓰면 코드 흐름을 추적하기 복잡해지기 때문에, 흐름을 쉽게 예상할 수 있게 써야 함.
+// 다단계 cleanup에 goto 쓰면 흐름이 아래로만 진행하기 때문에 간결함 
 static int conn_open(Conn *c, size_t bufsz) {
     c->rx = c->tx = NULL;
     c->state = NULL;
 
     c->rx = malloc(bufsz);
-    if (!c->rx) goto fail_rx;
+    if (!c->rx) goto fail_rx; // malloc 실패하면 NULL인데, free 못하지 않나 -> free(NULL)은 아무것도 하지 않음을 보장. 안전
 
     c->tx = malloc(bufsz);
-    if (!c->tx) goto fail_tx;
+    if (!c->tx) goto fail_tx; // 여기서 - 아닌듯 
 
     c->state = malloc(sizeof(int) * 4);
-    if (!c->state) goto fail_state;
+    if (!c->state) goto fail_state; 
 
     strcpy(c->rx, "rx-ready");
     strcpy(c->tx, "tx-ready");
@@ -72,16 +75,16 @@ static int conn_open(Conn *c, size_t bufsz) {
 
     if (!handshake_ok(c)) {
 
-        free(c->tx);              
-        goto fail_tx;             
+        // free(c->tx);       => fail-tx 에 free 책임 맡기는게 더 좋아 보인다       
+        goto fail_tx;        // rx에 "rx-ready" 문자열 있다. 그러니 여기서 dfree?     
     }
 
     return 0;                     
 
 fail_state:
-    free(c->state);
+    free(c->state); // 위에서 fail 하면, 나머지 것들도 전부 free됨 
 fail_tx:
-    free(c->tx);                 
+    free(c->tx);     // dfree             
 fail_rx:
     free(c->rx);
     return -1;
@@ -89,7 +92,7 @@ fail_rx:
 
 int main(void) {
     Conn c;
-    int rc = conn_open(&c, 32);   
+    int rc = conn_open(&c, 32);   //dfree
     printf("conn_open rc=%d\n", rc);
     return 0;
 }

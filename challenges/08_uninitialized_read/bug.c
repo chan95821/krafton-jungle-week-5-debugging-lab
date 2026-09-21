@@ -73,7 +73,7 @@ static void dirty_heap(void) {
 
 static int **make_matrix(void) {
 
-    int **rows = malloc(ROWS * sizeof(int *));
+    int **rows = calloc(ROWS * sizeof(int *), ROWS); // calloc으로 포인터가 전부 NULL 값으로 초기화
     if (!rows) { perror("malloc"); exit(1); }
 
     for (int i = 0; i < ROWS; i += 2) {
@@ -86,8 +86,18 @@ static int **make_matrix(void) {
 
 static long row_sum(int **rows, int nrows) {
     long total = 0;
-    for (int i = 0; i < nrows; i++) {
-        for (int j = 0; j < COLS; j++) {
+    for (int i = 0; i < nrows; i++) { // i가 짝수 번째인 인덱스만 malloc했으니, i가 1일 때 접근 시작부터 문제 
+        if(!rows[i])continue;
+        for (int j = 0; j < COLS; j++) { // 접근 패턴이 짝수로 일정하기 때문에 i += 2 해도 문제는 없지만, 
+            // 의도는 패턴과 관계없이 포인터를 NULL 검사해 아닌 것만 읽는 것,, 별로 
+            // 의도였다면 ROWS, COLS 끝 부분도 검사할 수 있어야하는 것 아닌지
+            /* 그래서 C에서는 보통 포인터와 크기를 함께 묶는 편이 더 자연스럽습니다.
+typedef struct {
+    int **rows;
+    size_t nrows;
+    size_t ncols;
+} Matrix; */
+            
             total += rows[i][j];      
         }
     }

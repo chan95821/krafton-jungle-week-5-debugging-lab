@@ -57,8 +57,8 @@ static void hist_grow(Histogram *h) {
 
 /* 키를 추가하고, 그 버킷의 주소를 돌려준다(성장이 일어날 수 있음). */
 static Bucket *hist_add(Histogram *h, int key) {
-    if (h->len == h->cap) hist_grow(h);
-    Bucket *b = &h->data[h->len++];
+    if (h->len == h->cap) hist_grow(h); // h->data 포인터 변경될 수 있다.
+    Bucket *b = &h->data[h->len++]; 
     b->key = key;
     b->count = 0;
     return b;
@@ -75,14 +75,16 @@ int main(void) {
 
     for (int k = 0; k < 200000; k++) hist_add(&h, k);
 
-    Bucket *hot = &h.data[100000];
-    hot->count = 1;
+    // Bucket *hot = &h.data[100000]; // realloc이 hist_add에서 실행될 때 주소가 바뀔 수 있음. h.data watch 시 주소가 여러번 바뀜
+    // hot -> 자주 갱신되는 h.data 의 원소를 쉽게 접근하기 위해,, 포인터 쓰면 hist_add가 realloc이기 때문에 무효 가능
+    int hot_idx = 100000; // hot.count 갱신 순서는 바꾸지 말아야 
+    h.data[hot_idx].count = 1;
 
     for (int k = 200000; k < 600000; k++) hist_add(&h, k);
 
-    hot->count += 1000;
+    h.data[hot_idx].count += 1000; // segfault
 
-    printf("hot=%ld total=%ld len=%zu\n", hot->count, hist_total(&h), h.len);
+    printf("hot=%ld total=%ld len=%zu\n", h.data[hot_idx].count, hist_total(&h), h.len);
     free(h.data);
     return 0;
 }
