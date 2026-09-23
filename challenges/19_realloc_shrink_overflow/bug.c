@@ -56,9 +56,11 @@ static void signal_init(Signal *s, size_t n) {
 static void signal_trim(Signal *s, size_t keep) {
     if (keep > s->cap) return;
     double *p = realloc(s->samples, keep * sizeof(double)); // keep만큼 줄여버리는 
-    if (p) s->samples = p;
-    s->cap = keep;
-    s->len = keep; // len이 있을 이유가 있나              
+    if (p) {
+        s->samples = p;
+        s->cap = keep;
+        s->len = keep; // len이 있을 이유가 있나            
+    }  
 }
 
 static double signal_energy(const Signal *s) {

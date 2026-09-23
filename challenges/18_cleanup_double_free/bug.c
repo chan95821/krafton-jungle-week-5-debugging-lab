@@ -76,7 +76,7 @@ static int conn_open(Conn *c, size_t bufsz) {
     if (!handshake_ok(c)) {
 
         // free(c->tx);       => fail-tx 에 free 책임 맡기는게 더 좋아 보인다       
-        goto fail_tx;        // rx에 "rx-ready" 문자열 있다. 그러니 여기서 dfree?     
+        goto fail_state;        // rx에 "rx-ready" 문자열 있다. 그러니 여기서 dfree?     
     }
 
     return 0;                     

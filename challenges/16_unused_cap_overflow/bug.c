@@ -41,15 +41,21 @@
 
 
 static void append_field(char *buf, size_t cap, size_t *len, const char *field, char sep) {
-    if(*len >= cap) return;
-    if (*len > 0) { // -> len >= cap을 이전에 검사한게 이 조건문에서도 유효하지 않음
-        buf[(*len)++] = sep;             
-    }
     size_t flen = strlen(field);
+    size_t t_add = flen + 1; // nulchar
+    if(*len != 0) t_add++;
+
+    if(*len + t_add > cap) return; // sep, nulchar까지 모두 포함해서 cap이 5, len이 3일 때, 두 문자 넣을 수 있다. 
+
+    if (*len != 0) {
+        buf[(*len)++] = sep;
+    }
+    
     for (size_t i = 0; i < flen && *len < cap ; i++) {
         buf[(*len)++] = field[i];         
     }
-    buf[*len] = '\0';
+
+    buf[*len] = '\0'; // len은 항상 null문자 위치 
     (void)cap;                            
 }
 
