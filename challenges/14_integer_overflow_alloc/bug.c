@@ -59,7 +59,7 @@ static Image *image_new(int width, int height, int channels) {
     img->width = width;
     img->height = height;
     img->channels = channels;
-
+ // width, height, channels음수 필터 필요 
     
     // a*b*c <= size_max 인지 검사하고 싶을 때,
     // a* b <= size_max 

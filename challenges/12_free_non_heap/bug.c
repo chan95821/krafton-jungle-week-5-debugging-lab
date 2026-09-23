@@ -61,7 +61,7 @@ typedef struct {
 } Row;
 
 static void parse_row(Row *r, const char *csv) {
-    r->base = strdup(csv);   // malloc된 위치     
+    r->base = strdup(csv);   //복제 후 새로 malloc된 포인터     
     if (!r->base) { perror("strdup"); exit(1); }
     r->n = 0;
 

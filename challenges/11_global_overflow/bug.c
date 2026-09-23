@@ -58,7 +58,7 @@ static void *arena_alloc(size_t n) {
 }
 
 static char *intern(const char *s) {
-    size_t n = strlen(s) + 1;
+    size_t n = strlen(s) + 1; // nul 문자 포함
     char *dst = arena_alloc(n);
     if(!dst) return NULL; // arena_off가 범위 외 
 
