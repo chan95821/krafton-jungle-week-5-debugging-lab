@@ -42,7 +42,7 @@
 
 static void append_field(char *buf, size_t cap, size_t *len, const char *field, char sep) {
     if(*len >= cap) return;
-    if (*len > 0) {
+    if (*len > 0) { // -> len >= cap을 이전에 검사한게 이 조건문에서도 유효하지 않음
         buf[(*len)++] = sep;             
     }
     size_t flen = strlen(field);
