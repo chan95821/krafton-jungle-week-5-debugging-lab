@@ -95,7 +95,7 @@ static void on_message(Msg *m) {
 static void broker_shutdown(Broker *b) {
     for (int i = 0; i < b->log_n; i++) {
         msg_free(b->log[i]);     //segf   // b->log 내부 객체가 같은 포인터라서,, "감사"용이니, shutdown 전 까지는 보존해야. 그러니 복사가 적절 
-    } // 왜 double freee는 아닌지? => msg_free가 args 전달할 때, m-> body로 m 에 접근하려 하기 때문
+    } // 왜 double freee는 아닌지? => msg_free가 args 전달할 때, m-> body로 m 에 접근하려 하기 때문, free 전에 접근 오류부터 난다.
     b->log_n = 0;
 }
 

@@ -80,7 +80,7 @@ static char *audit_record(const char *event) {
 
 static int handle_request(Session *s, const char *action) {
 
-    if(!s->user){ // session에 user 없음
+    if(s->user == NULL){ // session에 user 없음
         return 0;
     }
     return s->user->permission(action);    // 다른 함수 print 때와 다르게 permission 포인터 접근 못함.
